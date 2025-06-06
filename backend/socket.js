@@ -2,19 +2,34 @@ const socketIO = require("socket.io");
 const { encryptPayload } = require("./utils/crypto");
 const { v4: uuidv4 } = require("uuid");
 const redisClient = require("./utils/redisClient");
+const cls = require("./models/Classroom");
+
 const activeSessions = {};
 
 function generateSessionId() {
   return uuidv4() + Math.random().toString(36).substr(2, 9) + Date.now();
 }
 
-function generateClassSessionId(classroomId) {
+async function getClassName(classroomId) {
+  try {
+    const classroom = await cls.findById(classroomId);
+    if (!classroom) {
+      return "UnknownClass"; // Fallback if class not found
+    }
+    return classroom.classroomName;
+  } catch (error) {
+    console.log("Error while fetching class name:", error);
+    return "ErrorClass"; // Fallback in case of error
+  }
+}
+
+async function generateClassSessionId(classroomId) {
   const now = new Date();
   const hours = now.getHours();
-  const period = hours < 13 ? "forenoon" : "afternoon";
-
+  const period = hours < 13 ? "FN" : "AN";
+  const className = await getClassName(classroomId);
   const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  return `${classroomId}_${dateStr}_${period}`;
+  return `${classroomId}_${dateStr}_${className}_${period}`;
 }
 
 module.exports = (server) => {
@@ -28,12 +43,11 @@ module.exports = (server) => {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    socket.on("start-qr", ({ classroomId }) => {
+    socket.on("start-qr", async ({ classroomId }) => {
       console.log("Start QR for:", classroomId);
       if (activeSessions[classroomId]) return;
 
-      // 🔒 Create a consistent classSessionId for this full class session
-      const classSessionId = generateClassSessionId(classroomId);
+      const classSessionId = await generateClassSessionId(classroomId);
 
       const interval = setInterval(async () => {
         const sessionId = generateSessionId();
@@ -42,24 +56,22 @@ module.exports = (server) => {
         const payload = {
           classroomId,
           sessionId,
-          classSessionId, // 🔁 Include stable session
+          classSessionId,
           expiresAt,
         };
 
-        // ✅ Save session to Redis with 10s TTL
         try {
           await redisClient.set(
             `qr:session:${sessionId}`,
             JSON.stringify(payload),
             {
-              EX: 10, // Redis expiry in seconds
+              EX: 10,
             }
           );
         } catch (err) {
           console.error("Redis set error for sessionId:", sessionId, err);
         }
 
-        // const qrString = JSON.stringify(payload);
         const qrString = encryptPayload(payload);
 
         socket.emit("qr-update", { qrString });
@@ -71,7 +83,7 @@ module.exports = (server) => {
 
       activeSessions[classroomId] = {
         interval,
-        classSessionId, // store for later if needed
+        classSessionId,
       };
     });
 
@@ -85,7 +97,7 @@ module.exports = (server) => {
 
     socket.on("disconnect", () => {
       console.log("Socket disconnected:", socket.id);
-      // Optionally stop all sessions on disconnect
+      // Optional: clear intervals on disconnect
     });
   });
 };

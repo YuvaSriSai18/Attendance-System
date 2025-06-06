@@ -11,7 +11,7 @@ const server = http.createServer(app);
 
 app.use(
   cors({
-    origin: ["http://localhost:5173","https://rbnfh5ks-5173.inc1.devtunnels.ms"],
+    origin: ["http://localhost:5173","https://rbnfh5ks-5173.inc1.devtunnels.ms","https://27sb0nqh-5173.inc1.devtunnels.ms/"],
     methods: ["GET", "POST", "PUT", "DELETE"],
   })
 );
