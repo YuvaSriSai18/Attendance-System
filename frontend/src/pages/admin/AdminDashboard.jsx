@@ -6,10 +6,16 @@ import VenueManagement from './VenueManagement';
 import ClassManagement from './ClassManagement';
 import StudentManagement from './StudentManagement';
 import AttendanceReports from './AttendanceReports';
-import { getVenues, getRecentAttendance } from '../../api';
+import { getVenues, getRecentAttendance, getAllAttendees } from '../../api';
 
-const StatCard = ({ title, value, borderColor }) => (
-  <div className={`bg-white rounded-lg p-4 border-l-4 ${borderColor}`}>
+const StatCard = ({ title, value, borderColor, onClick }) => (
+  <div
+    onClick={onClick}
+    role={onClick ? 'button' : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onKeyDown={onClick ? (e) => e.key === 'Enter' && onClick() : undefined}
+    className={`bg-white rounded-lg p-4 border-l-4 ${borderColor} duration-400 hover:shadow-lg transition cursor-pointer`}
+  >
     <h3 className="text-sm font-medium text-gray-500">{title}</h3>
     <p className="text-2xl font-bold">{value}</p>
   </div>
@@ -21,7 +27,7 @@ const RecentClassRow = ({ venue, date, attendance, color, onClick }) => (
     role="button"
     tabIndex={0}
     onKeyDown={(e) => e.key === 'Enter' && onClick()}
-    className="hover:bg-gray-100 transition cursor-pointer"
+    className="hover:bg-gray-100 transition duration-400 cursor-pointer"
   >
     <td className="py-2 px-4">{venue}</td>
     <td className="py-2 px-4">{date}</td>
@@ -35,14 +41,26 @@ const AdminOverview = () => {
   const navigate = useNavigate();
   const [venues, setVenues] = useState([]);
   const [recentClasses, setRecentClasses] = useState([]);
+  const [uniqueStudentsCount, setUniqueStudentsCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const venueData = await getVenues();
         const recentData = await getRecentAttendance();
+
         setVenues(venueData.classrooms || []);
         setRecentClasses(recentData.classes?.slice(0, 5) || []);
+
+        const allRollNumbers = new Set();
+
+        (venueData.classrooms || []).forEach((venue) => {
+          if (venue.studentRolls) {
+            venue.studentRolls.forEach((roll) => allRollNumbers.add(roll));
+          }
+        });
+
+        setUniqueStudentsCount(allRollNumbers.size);
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
       }
@@ -56,9 +74,19 @@ const AdminOverview = () => {
         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Venues" value={venues.length} borderColor="border-primary" />
-        <StatCard title="Recent Classes" value={recentClasses.length} borderColor="border-secondary" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ">
+        <StatCard
+          title="Total Venues"
+          value={venues.length}
+          borderColor="border-primary"
+          onClick={() => navigate('/admin/venues')}
+        />
+        <StatCard
+          title="Total Students"
+          value={uniqueStudentsCount}
+          borderColor="border-secondary"
+          onClick={() => navigate('/admin/students')}
+        />
       </div>
 
       <div className="bg-white rounded-lg p-4">
