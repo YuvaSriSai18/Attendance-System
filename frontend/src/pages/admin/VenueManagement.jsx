@@ -24,7 +24,6 @@ const VenueManagement = () => {
     try {
       const response = await API.getVenues();
       const payload = response;
-
       if (payload && Array.isArray(payload.classrooms)) {
         setClassrooms(payload.classrooms);
       } else {
@@ -101,7 +100,7 @@ const VenueManagement = () => {
   };
 
   return (
-    <div className="fade-in p-4">
+    <div className="fade-in p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Classroom Management</h1>
         <button onClick={() => handleOpenFormModal()} className="btn btn-primary flex items-center">
@@ -110,57 +109,44 @@ const VenueManagement = () => {
         </button>
       </div>
 
-      <div className="card bg-white shadow-sm rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table w-full">
-            <thead>
-              <tr>
-                <th>Classroom Name</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="2" className="text-center py-6 text-gray-600">Loading classrooms...</td>
-                </tr>
-              ) : classrooms.length === 0 ? (
-                <tr>
-                  <td colSpan="2" className="text-center py-6 text-gray-600">No classrooms available.</td>
-                </tr>
-              ) : (
-                classrooms.map((classroom) => (
-                  <tr key={classroom._id || classroom.id} className="hover:bg-gray-50">
-                    <td>
-                      <button
-                        onClick={() => handleShowRollsModal(classroom)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        {classroom.classroomName}
-                      </button>
-                    </td>
-                    <td>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleOpenFormModal(classroom)}
-                          className="p-1 text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(classroom._id || classroom.id)}
-                          className="p-1 text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        {loading ? (
+          <div className="col-span-full text-center py-10 text-gray-600">Loading classrooms...</div>
+        ) : classrooms.length === 0 ? (
+          <div className="col-span-full text-center py-10 text-gray-600">No classrooms available.</div>
+        ) : (
+          classrooms.map((cls) => (
+            <div
+              key={cls._id}
+              className="relative group w-full h-48 rounded-xl shadow-lg flex items-center justify-center transition-transform transform hover:scale-105 overflow-hidden"
+              style={{ background: 'linear-gradient(to bottom, white, #fafac0)' }}
+            >
+              <div className="absolute inset-0 flex flex-col items-center justify-center transition duration-500 group-hover:opacity-0">
+                <p className="text-xl mt-2 font-semibold text-gray-800">{cls.classroomName}</p>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center bg-white transition duration-500 opacity-0 group-hover:opacity-100 space-x-4">
+                <button
+                  onClick={() => handleShowRollsModal(cls)}
+                  className="bg-[#404020] hover:bg-[#33331a] text-white px-3 py-1 rounded text-sm"
+                >
+                  View Rolls
+                </button>
+                <button
+                  onClick={() => handleOpenFormModal(cls)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(cls._id || cls.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {showFormModal && (

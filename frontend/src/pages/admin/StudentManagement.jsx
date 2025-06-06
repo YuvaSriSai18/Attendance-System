@@ -1,30 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Download, UserPlus, Edit, Trash2, Search } from 'lucide-react';
+import { Upload, Download, UserPlus, RefreshCw, Trash2, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import axios from 'axios';
 
 const StudentManagement = () => {
   const [students, setStudents] = useState([]);
+  const [venues, setVenues] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCourse, setFilterCourse] = useState('');
   const [filterAttendance, setFilterAttendance] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-
   const [showAddForm, setShowAddForm] = useState(false);
   const [newStudent, setNewStudent] = useState({
     rollNumber: '',
-    name: '',
-    email: '',
-    course: '',
-    year: '',
     attendance: '',
+    venue: ''
   });
 
   useEffect(() => {
     fetchStudents();
+    fetchVenues();
   }, []);
 
   const fetchStudents = async () => {
@@ -33,6 +30,15 @@ const StudentManagement = () => {
       setStudents(res.data);
     } catch (err) {
       console.error('Failed to fetch students', err);
+    }
+  };
+
+  const fetchVenues = async () => {
+    try {
+      const res = await axios.get('/api/classrooms');
+      setVenues(res.data);
+    } catch (err) {
+      console.error('Failed to fetch venues', err);
     }
   };
 
@@ -66,7 +72,7 @@ const StudentManagement = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const wsData = [['Roll Number', 'Name', 'Venue Name']];
+    const wsData = [['Roll Number', 'Venue Name']];
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
@@ -86,14 +92,9 @@ const StudentManagement = () => {
   };
 
   const filteredStudents = students.filter(student =>
-    (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (filterCourse ? student.course === filterCourse : true) &&
+    student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()) &&
     (filterAttendance ? student.attendance >= Number(filterAttendance) : true)
   );
-
-  const uniqueCourses = [...new Set(students.map(s => s.course))];
 
   return (
     <div className="fade-in">
@@ -113,9 +114,9 @@ const StudentManagement = () => {
 
       <div className="card bg-white p-4 mb-6">
         <h2 className="text-lg font-medium mb-3">Import Student Data</h2>
-        <div className="flex flex-col md-row items-start md-center space-y-3 md-y-0 md-x-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center space-y-3 md:space-y-0 md:space-x-4">
           <div className="flex-1">
-            <label className="flex items-center justify-center w-full h-10 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover-gray-400 focus-none">
+            <label className="flex items-center justify-center w-full h-10 px-4 transition bg-white border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-gray-400">
               <span className="flex items-center space-x-2">
                 <Upload size={16} />
                 <span className="font-medium text-sm text-gray-600">
@@ -124,7 +125,6 @@ const StudentManagement = () => {
               </span>
               <input
                 type="file"
-                name="file_upload"
                 className="hidden"
                 accept=".xlsx, .xls"
                 onChange={handleFileChange}
@@ -157,28 +157,6 @@ const StudentManagement = () => {
         </div>
       </div>
 
-      <div className="flex space-x-4 mb-4">
-        <select
-          value={filterCourse}
-          onChange={(e) => setFilterCourse(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2"
-        >
-          <option value="">All Courses</option>
-          {uniqueCourses.map(course => (
-            <option key={course} value={course}>{course}</option>
-          ))}
-        </select>
-        <input
-          type="number"
-          min="0"
-          max="100"
-          placeholder="Min Attendance %"
-          value={filterAttendance}
-          onChange={(e) => setFilterAttendance(e.target.value)}
-          className="border border-gray-300 rounded px-3 py-2 w-40"
-        />
-      </div>
-
       <div className="mb-4 flex justify-between items-center">
         <div className="relative flex-1 max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -186,19 +164,27 @@ const StudentManagement = () => {
           </div>
           <input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus-none focus-primary focus-primary sm-sm"
-            placeholder="Search students..."
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md bg-white placeholder-gray-500"
+            placeholder="Search roll number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button
-          className="btn btn-primary flex items-center"
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          <UserPlus size={16} className="mr-1" />
-          {showAddForm ? 'Cancel' : 'Add Student'}
-        </button>
+        <div className="flex items-center space-x-3">
+          <input
+            type="number"
+            min="0"
+            max="100"
+            placeholder="Min Attendance %"
+            value={filterAttendance}
+            onChange={(e) => setFilterAttendance(e.target.value)}
+            className="border border-gray-300 rounded px-3 py-2 w-40"
+          />
+          <button className="btn btn-primary flex items-center" onClick={() => setShowAddForm(!showAddForm)}>
+            <UserPlus size={16} className="mr-1" />
+            {showAddForm ? 'Cancel' : 'Add Student'}
+          </button>
+        </div>
       </div>
 
       {showAddForm && (
@@ -212,40 +198,24 @@ const StudentManagement = () => {
             className="border p-2 rounded mb-2 w-full"
           />
           <input
-            type="text"
-            placeholder="Name"
-            value={newStudent.name}
-            onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
-            className="border p-2 rounded mb-2 w-full"
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={newStudent.email}
-            onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
-            className="border p-2 rounded mb-2 w-full"
-          />
-          <input
-            type="text"
-            placeholder="Course"
-            value={newStudent.course}
-            onChange={e => setNewStudent({ ...newStudent, course: e.target.value })}
-            className="border p-2 rounded mb-2 w-full"
-          />
-          <input
-            type="number"
-            placeholder="Year"
-            value={newStudent.year}
-            onChange={e => setNewStudent({ ...newStudent, year: e.target.value })}
-            className="border p-2 rounded mb-2 w-full"
-          />
-          <input
             type="number"
             placeholder="Attendance %"
             value={newStudent.attendance}
             onChange={e => setNewStudent({ ...newStudent, attendance: e.target.value })}
             className="border p-2 rounded mb-2 w-full"
           />
+          <select
+            className="border p-2 rounded mb-2 w-full"
+            value={newStudent.venue}
+            onChange={e => setNewStudent({ ...newStudent, venue: e.target.value })}
+          >
+            <option value="">Select Classroom</option>
+            {venues.map(venue => (
+              <option key={venue._id} value={venue.name}>
+                {venue.name}
+              </option>
+            ))}
+          </select>
           <button
             className="btn btn-success"
             onClick={async () => {
@@ -253,14 +223,7 @@ const StudentManagement = () => {
                 await axios.post('/api/students', newStudent);
                 setShowAddForm(false);
                 fetchStudents();
-                setNewStudent({
-                  rollNumber: '',
-                  name: '',
-                  email: '',
-                  course: '',
-                  year: '',
-                  attendance: '',
-                });
+                setNewStudent({ rollNumber: '', attendance: '', venue: '' });
               } catch (err) {
                 console.error('Failed to add student', err);
               }
@@ -277,29 +240,36 @@ const StudentManagement = () => {
             <thead>
               <tr>
                 <th>Roll Number</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Course</th>
-                <th>Year</th>
-                <th>Attendance %</th>
+                <th>Attendance</th>
+                <th>Venue</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.map((student) => (
-                <tr key={student.id}>
+                <tr key={student._id}>
                   <td className="font-medium">{student.rollNumber}</td>
-                  <td>{student.name}</td>
-                  <td>{student.email}</td>
-                  <td>{student.course}</td>
-                  <td>{student.year}</td>
-                  <td>{student.attendance}</td>
+                  <td>
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div
+                        className={`h-4 rounded-full ${student.attendance < 80
+                          ? 'bg-red-500'
+                          : student.attendance < 85
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
+                          }`}
+                        style={{ width: `${student.attendance}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">{student.attendance}%</p>
+                  </td>
+                  <td>{student.venue || '-'}</td>
                   <td>
                     <div className="flex space-x-2">
-                      <button className="p-1 text-blue-600 hover-blue-800">
-                        <Edit size={16} />
+                      <button onClick={fetchStudents} className="p-1 text-blue-600 hover:text-blue-800">
+                        <RefreshCw size={16} />
                       </button>
-                      <button className="p-1 text-red-600 hover-red-800">
+                      <button className="p-1 text-red-600 hover:text-red-800">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -311,7 +281,7 @@ const StudentManagement = () => {
 
           {filteredStudents.length === 0 && (
             <div className="text-center py-4">
-              <p className="text-gray-500">No students found matching your search criteria.</p>
+              <p className="text-gray-500">No students found matching your criteria.</p>
             </div>
           )}
         </div>

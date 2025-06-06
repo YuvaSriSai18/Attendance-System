@@ -1,8 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://rbnfh5ks-5200.inc1.devtunnels.ms',
-  // baseURL: 'http://localhost:5200',
+  baseURL: 'https://rbnfh5ks-5200.inc1.devtunnels.ms/',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -31,7 +30,7 @@ export const deleteVenue = async (id) => {
 
 // RECENT ATTENDANCE API
 export const getRecentAttendance = async () => {
-  const res = await api.get('/attendance/recent');
+  const res = await api.get('/attendance/');
   return res.data;
 };
 
@@ -40,3 +39,12 @@ export const getUpcomingClasses = async () => {
   return res.data;
 };
 
+export const getAllAttendees = async () => {
+  const res = await api.get('/attendance');
+  return res.data;
+};
+
+export const getAllStudents = async () => {
+  const res = await api.get('/classroom');
+  return res.data;
+}
