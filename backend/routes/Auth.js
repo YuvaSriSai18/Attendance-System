@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const User = require("../models/User");
 const Classroom = require("../models/Classroom");
+const Att_Percentages = require("../models/Attendance_Percentage");
 const jwt = require("jsonwebtoken");
 const decodeJwt = require("jwt-decode");
 
@@ -25,10 +26,11 @@ router.post("/", async (req, res) => {
     // Also check if device is already used by another user
     const deviceConflict = await User.findOne({
       deviceId,
-      rollNo: { $ne: rollNo }, 
+      rollNo: { $ne: rollNo },
     });
 
     if (deviceConflict) {
+      console.log(`This device is already registered with another user (${deviceConflict.rollNo})`)
       return res.status(403).json({
         message: `This device is already registered with another user (${deviceConflict.rollNo})`,
       });
@@ -52,9 +54,7 @@ router.post("/", async (req, res) => {
         process.env.JWT_SECRET
       );
 
-      return res
-        .status(200)
-        .json({ message: "Login successful", token, user });
+      return res.status(200).json({ message: "Login successful", token, user });
     }
 
     // Registration flow
@@ -74,8 +74,15 @@ router.post("/", async (req, res) => {
       classroomId: classroom._id,
       classroomName: classroom.classroomName,
     });
-
+    const Att_Percentage = new Att_Percentages({
+      classroomId: classroom._id,
+      classroomName: classroom.classroomName,
+      displayName: user.displayName,
+      email: user.email,
+      rollNo: user.rollNo,
+    });
     await user.save();
+    await Att_Percentage.save();
 
     const token = jwt.sign(
       {
